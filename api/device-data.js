@@ -7,21 +7,24 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { device_id, smoke1, smoke2, flame1, flame2 } = req.body;
+    try {
+      const { device_id, smoke1, smoke2, flame1, flame2 } = req.body;
 
-    const { data, error } = await supabase
-      .from('device_logs')
-      .insert([
-        { device_id, smoke1, smoke2, flame1, flame2 }
-      ]);
+      // Insert data into Supabase and return the inserted row
+      const { data, error } = await supabase
+        .from('device_logs')
+        .insert([{ device_id, smoke1, smoke2, flame1, flame2 }])
+        .select(); // 👈 this makes Supabase return the new row(s)
 
-    if (error) {
-      console.error('Supabase insert error:', error.message);
-      return res.status(500).json({ error: error.message });
+      if (error) throw error;
+
+      res.status(200).json({ message: 'Data inserted!', data });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Error inserting data', error: error.message });
     }
-
-    return res.status(200).json({ message: 'Data inserted!', data });
+  } else {
+    res.setHeader('Allow', ['POST']);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-
-  res.status(405).json({ error: 'Method not allowed' });
 }
